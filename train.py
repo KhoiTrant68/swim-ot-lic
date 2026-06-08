@@ -185,7 +185,7 @@ def main(argv):
     train_tf = transforms.Compose([transforms.RandomCrop(args.patch_size), transforms.ToTensor()])
     test_tf = transforms.Compose([transforms.CenterCrop(args.patch_size), transforms.ToTensor()])
     train_dataset = ImageFolder(args.dataset, split="train", transform=train_tf)
-    test_dataset = ImageFolder(args.dataset, split="test", transform=test_tf)
+    test_dataset = ImageFolder(args.dataset, split="valid", transform=test_tf)
 
     if args.local_rank != -1:
         torch.cuda.set_device(args.local_rank)
