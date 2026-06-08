@@ -41,7 +41,7 @@ for ROUTING in softmax balanced_ot; do
       --type         mse \
       --cuda \
       --save_path    "$OUT/$TAG" \
-      --no-continue-train            # fresh optimizer/scheduler; load weights only
+      --finetune          # fresh optimizer/scheduler; load weights only
     echo "=== done $TAG ==="
   done
 done

@@ -20,7 +20,7 @@ from pytorch_msssim import ms_ssim
 from torch.utils.tensorboard import SummaryWriter
 
 from models.dcae_ot import DCAE_OT
-from adapt_checkpoint import load_dcae_into_ot
+from modules.adapt_checkpoint import load_dcae_into_ot
 
 torch.set_num_threads(8)
 torch.backends.cudnn.deterministic = True
