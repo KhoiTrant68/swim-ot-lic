@@ -26,7 +26,7 @@ class DictCrossAttentionRouted(nn.Module):
         self.routing = routing
         self.ot_iters = ot_iters
         self.ot_eps = ot_eps
-        self.last_plan = None  # eval-only cache for utilisation diagnostics
+        self.last_probs = None  # eval-only routing-weights cache; both routings
 
         self.scale = nn.Parameter(torch.ones(head_num, 1, 1))
         self.x_trans = nn.Linear(input_dim, dict_dim, bias=qkv_bias)
@@ -73,10 +73,10 @@ class DictCrossAttentionRouted(nn.Module):
         elif self.routing == "balanced_ot":
             P = balanced_sinkhorn(gain, n_iters=self.ot_iters, eps=self.ot_eps)
             probs = P / (P.sum(dim=-1, keepdim=True) + 1e-9)  # row-normalise
-            if not self.training:
-                self.last_plan = P.detach()
         else:
             raise ValueError(f"unknown routing: {self.routing}")
+        if not self.training:
+            self.last_probs = probs.detach()
         # -----------------------------------------------------------
 
         output = torch.einsum("bend,bedc->benc", probs, dt)
@@ -117,13 +117,20 @@ class DCAE_OT(DCAE):
 
     @torch.no_grad()
     def routing_utilisation(self, thresh_ratio: float = 0.01):
-        """Aggregate plan_utilisation over slices from the LAST eval forward.
-        Returns None for softmax routing (no transport plan cached)."""
+        """Per-slice + aggregate routing diagnostics from the last eval forward.
+        Works for both routings; collapse shows up as low util_frac on the
+        column marginal of probs."""
         from modules.sinkhorn import plan_utilisation
-        plans = [a.last_plan for a in self.dt_cross_attention if a.last_plan is not None]
-        if not plans:
+        per_slice = []
+        for i, a in enumerate(self.dt_cross_attention):
+            if a.last_probs is None:
+                continue
+            s = plan_utilisation(a.last_probs, thresh_ratio)
+            s["slice"] = i
+            per_slice.append(s)
+        if not per_slice:
             return None
-        stats = [plan_utilisation(p, thresh_ratio) for p in plans]
-        util = sum(s["util_frac"] for s in stats) / len(stats)
-        ent = sum(s["col_entropy"] for s in stats) / len(stats)
-        return {"util_frac": util, "col_entropy": ent, "num_slices": len(stats)}
+        util = sum(s["util_frac"] for s in per_slice) / len(per_slice)
+        ent = sum(s["col_entropy"] for s in per_slice) / len(per_slice)
+        return {"util_frac": util, "col_entropy": ent,
+                "per_slice": per_slice, "num_slices": len(per_slice)}
