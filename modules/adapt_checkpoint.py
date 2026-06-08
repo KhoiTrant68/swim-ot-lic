@@ -38,7 +38,7 @@ def load_dcae_into_ot(model, ckpt_path: str, dict_num: int = 128,
         sd[dt_key] = warm
         print(f"[adapt] dt re-init: tiled {n_pre} pretrained atoms -> {dict_num} (+noise {noise_std}).")
 
-    missing, unexpected = model.load_state_dict(sd, strict=False)
+    model.load_state_dict(sd, strict=False)
     # `missing` should be empty (or only newly-added buffers); `unexpected`
     # should be empty. Print so a silent key mismatch can't hide a 4 dB hole.
     if missing:
