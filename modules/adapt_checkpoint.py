@@ -1,4 +1,32 @@
+import re
+
 import torch
+
+
+# CompressAI EntropyBottleneck attribute names changed in newer versions:
+# old: _bias{i} / _factor{i} / _matrix{i}  (flat Parameter/Buffer per index)
+# new: biases.{i} / factors.{i} / matrices.{i}  (ParameterList)
+# Pretrained DCAE checkpoints use the old layout; current compressai expects
+# the new one. Without this rename, 14 entropy_bottleneck keys silently stay
+# at random init, which destroys bpp.
+_LEGACY_RENAME = {"_bias": "biases", "_factor": "factors", "_matrix": "matrices"}
+_LEGACY_PAT = re.compile(r"^(.*?)(_bias|_factor|_matrix)(\d+)$")
+
+
+def _rename_legacy_compressai_keys(sd: dict) -> dict:
+    out, renamed = {}, 0
+    for k, v in sd.items():
+        m = _LEGACY_PAT.match(k)
+        if m:
+            prefix, attr, idx = m.groups()
+            out[f"{prefix}{_LEGACY_RENAME[attr]}.{idx}"] = v
+            renamed += 1
+        else:
+            out[k] = v
+    if renamed:
+        print(f"[adapt] renamed {renamed} legacy compressai keys "
+              f"(_bias/_factor/_matrix{{i}} -> biases/factors/matrices.{{i}}).")
+    return out
 
 
 def load_dcae_into_ot(model, ckpt_path: str, dict_num: int = 128,
@@ -7,6 +35,7 @@ def load_dcae_into_ot(model, ckpt_path: str, dict_num: int = 128,
     ckpt = torch.load(ckpt_path, map_location=map_location)
     sd = ckpt.get("state_dict", ckpt)
     sd = {k[len("module."):] if k.startswith("module.") else k: v for k, v in sd.items()}
+    sd = _rename_legacy_compressai_keys(sd)
 
     # --- re-init dt if the codebook size differs from the checkpoint ---
     pre_dt = sd.get(dt_key, None)
