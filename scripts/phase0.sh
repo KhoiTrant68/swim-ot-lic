@@ -20,7 +20,7 @@ CKPT=./checkpoints/dcae_lambda0.013.pth.tar
 KODAK=/kaggle/input/datasets/khitrnminh/kodak-test               # 24 PNGs
 OUT=./results/phase0
 
-LAMBDA=0.0018
+LAMBDA=0.013
 EPOCHS=10
 BS=4
 LR=1e-4
