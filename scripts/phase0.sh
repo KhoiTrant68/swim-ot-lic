@@ -15,16 +15,16 @@
 # Edit the four paths, then: bash scripts/phase0.sh
 set -euo pipefail
 
-DATASET=/path/to/openimages          # train/ + test/ subfolders (compressai ImageFolder)
-CKPT=/path/to/dcae_lambda0.013.pth.tar
-KODAK=/path/to/kodak                 # 24 PNGs
+DATASET=/kaggle/input/datasets/tranjohan/data-1000-test/dataset_1000_test          # train/ + test/ subfolders (compressai ImageFolder)
+CKPT=./checkpoints/dcae_lambda0.013.pth.tar
+KODAK=/kaggle/input/datasets/khitrnminh/kodak-test               # 24 PNGs
 OUT=./results/phase0
 
-LAMBDA=0.013
-EPOCHS=40
-BS=16
+LAMBDA=0.0018
+EPOCHS=10
+BS=4
 LR=1e-4
-GPUS=8
+GPUS=2
 
 TAG="softmax_N128"
 RUN_DIR="$OUT/$TAG"
